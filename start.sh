@@ -1,7 +1,5 @@
 #!/bin/bash
 
-./resources.sh
-
 microk8s kubectl apply -f mk8s-iris.yml
 echo "microk8s kubectl get pod -l app=iris"
 echo "microk8s kubectl get statefulset -o wide"
