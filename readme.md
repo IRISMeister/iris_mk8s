@@ -1,5 +1,5 @@
 ## 目的
-Japan Virtual Summit 2021で、Kubernetesに関するセッションを実施させていただいたのですが、AzureのアカウントやIRIS評価用ライセンスキーをお持ちの方が対象になっていました。もう少し手軽に試してみたいとお考えの開発者の方もおられると思いおますので、本記事では仮想環境でも利用可能なk8sの軽量実装である[mirok8s](https://microk8s.io/)で、IRIS Community Editionを稼働させる手順をご紹介いたします。
+Japan Virtual Summit 2021で、Kubernetesに関するセッションを実施させていただいたのですが、AzureのアカウントやIRIS評価用ライセンスキーをお持ちの方が対象になっていました。もう少し手軽に試してみたいとお考えの開発者の方もおられると思いますので、本記事では仮想環境でも利用可能なk8sの軽量実装である[mirok8s](https://microk8s.io/)で、IRIS Community Editionを稼働させる手順をご紹介いたします。
 
 参考までに私の環境は以下の通りです。
 |用途|O/S|ホストタイプ|IP|
@@ -11,7 +11,11 @@ Ubuntsuは、[ubuntu-20.04.1-live-server-amd64.iso](http://old-releases.ubuntu.c
 
 ## 概要
 IRIS Community EditionをKubernetesのStatefulSetとしてデプロイする手順を記します。
-IRISのシステムファイルやユーザデータベースを外部保存するための永続化ストレージには、microk8s_hostpathもしくはLonghornを使用します。
+IRISのシステムファイルやユーザデータベースを外部保存するための永続化ストレージには、microk8s_hostpathもしくはLonghornを使用します。  
+使用するコードは[こちら](https://github.com/IRISMeister/iris_mk8s)にあります。
+
+> 2021.1のプレビューバージョンを使用しています。2021.1が正式リリースされた際には、イメージ名が差し変わるため、そのままでは動作しなくなります。ymlのimage:の値を必要に応じて修正してください。
+
 
 ## インストレーション
 microk8sをインストール・起動します。 
@@ -69,11 +73,8 @@ iris         ClusterIP      None             <none>           52773/TCP         
 iris-ext     LoadBalancer   10.152.183.137   192.168.11.110   52773:31707/TCP   8m55s
 ```
 
-ポッドがrunningにならない場合、下記コマンドでイベントを確認できます。イメージ名を間違って指定していてPullが失敗したり、なんらかのリソースが不足していることが考えられます。
+ポッドのSTATUSがrunningにならない場合、下記コマンドでイベントを確認できます。イメージ名を間違って指定していてPullが失敗したり、なんらかのリソースが不足していることが考えられます。
 ```
-$ kubectl get pod
-NAME     READY   STATUS             RESTARTS   AGE
-data-0   0/1     ImagePullBackOff   0          32s
 $ kubectl describe pod data-0
 ```
 
