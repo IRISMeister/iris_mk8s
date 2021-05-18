@@ -95,7 +95,9 @@ data-1   1/1     Running   0          45m   10.1.243.203   ubuntu   <none>      
 $
 ```
 
-> 通常、内部IPはkubectl実行ホストから直接参照できません(参照するためにkubectl port-forwardを使用します)が、今回のmicrok8s環境は全て同じホストで稼働しているのでアクセス可能です。また、私の仮想環境のLinuxはGUIがありませんので、下記のコマンドをクライアントPCで実行することで、Windowsのブラウザから管理ポータルにアクセスできるようにしました。
+> 通常、内部IPはkubectl実行ホストから直接参照できません(参照するためにkubectl port-forwardを使用します)が、今回のmicrok8s環境は全て同じホストで稼働しているのでアクセス可能です。
+
+私の仮想環境のLinuxはGUIがありませんので、下記のコマンドをクライアントPCで実行することで、Windowsのブラウザから管理ポータルにアクセスできるようにしました。
 
 ```
 C:\temp>ssh -L 9092:10.1.243.202:52773 YourLinuxUserName@192.168.11.49
@@ -109,6 +111,7 @@ C:\temp>ssh -L 9093:10.1.243.203:52773 YourLinuxUserName@192.168.11.49
 |ポッドdata-0上のIRIS|http://localhost:9092/csp/sys/%25CSP.Portal.Home.zen|SuperUser|SYS|
 |ポッドdata-1上のIRIS|http://localhost:9093/csp/sys/%25CSP.Portal.Home.zen|SuperUser|SYS|
 
+> パスワードはCPFのPasswordHashで指定しています
 
 データベースの構成を確認してください。下記のデータベースがPV上に作成されていることを確認できます。
 |データベース名|path|
@@ -182,8 +185,13 @@ StatefulSetでは、各ポットにはmetadata.nameの値に従い、data-0, dat
 kind: StatefulSet
 metadata:
   name: data
+
+kind: Service
+spec:
+  clusterIP: None # Headless Service
+
 ```
-> この特徴は、ノード間で通信をするクラスタのような機能を実装する際に有益です。Shardingなどが該当しますが、本例では直接の便益はありません。
+> この特徴は、ノード間で通信をするShardingのような機能を使用する際に有益です。本例では直接の便益はありません。
 
 nslookupを使いたいのですが、kubectlやk8sで使用されているコンテナランタイム(ctr)にはdockerのようにrootでログインする機能がありません。また、IRISのコンテナイメージはセキュリティ上の理由でsudoをインストールしていませんので、イメージのビルド時以外のタイミングで追加でソフトウェアをapt install出来ません。ここではbusyboxを追加で起動して、そこでnslookupを使ってホスト名を確認します。
 
@@ -203,7 +211,7 @@ Address 1: 10.1.243.202 data-0.iris.default.svc.cluster.local
 現在のk8sはDockerを使用していません。ですので、イメージのビルドを行うためには別途Dockerのセットアップが必要です。
 > k8sはあくまで運用環境のためのものです  
 
-ここでは、Docker及びdocker-composeのセットアップが済んでいる前提で話を進めます。イメージはどんな内容でも構いません。ここでは例として[simple](https://github.com/IRISMeister/simple)を使用します。このイメージはMYAPPというネームスペース上で、ごく簡単なRESTサービスを提供するIRISイメージをベースにしたイメージです。localhost:32000はk8sが用意したコンテナレポジトリで、そこにこのイメージをpushします。
+ここでは、Docker及びdocker-composeのセットアップが済んでいる前提で話を進めます。イメージはどんな内容でも構いません。ここでは例として[simple](https://github.com/IRISMeister/simple)を使用します。このイメージはMYAPPネームスペース上で、ごく簡単なRESTサービスを提供します。localhost:32000はmicrok8sが用意した組み込みのコンテナレジストリで、そこにこのイメージをpushします。
 
 ```
 $ git clone https://github.com/IRISMeister/simple.git
@@ -219,7 +227,7 @@ $ docker tag dpmeister/simple:latest localhost:32000/simple:latest
 $ docker push localhost:32000/simple:latest
 ```
 
-ymlを編集してimageをlocalhost:32000/simpleに書き換えます。データの保存場所をコンテナ内のデータベースから外部データベースに切り替えるために、cpfのactionにModifyNamespaceを追加します。編集済みのファイルをmk8s-simple.ymlとしてご用意しました(mk8s-iris.ymlとほとんど同じです)。これを使用して起動します。
+ymlを編集してimageをlocalhost:32000/simpleに書き換えます。データの保存場所をコンテナ内のデータベース(MYAPP-DATA)から外部データベース(MYAPP-DATA-EXT)に切り替えるために、cpfのactionにModifyNamespaceを追加します。編集済みのファイルをmk8s-simple.ymlとしてご用意しました(mk8s-iris.ymlとほとんど同じです)。これを使用して起動します。
 
 既にポッドを起動しているのであれば、削除します。
 ```
@@ -245,7 +253,7 @@ $ curl -s -H "Content-Type: application/json; charset=UTF-8" -H "Accept:applicat
 ```
 curlの実行を繰り返すと、HostName(RESTサービスが動作したホスト名)がdata-0だったりdata-1だったりしますが、これは(期待通りに)ロードバランスされているためです。
 
-> まれにログインに失敗したり、待たされることがあります。Community EditionはMAX 5セッションまでですので、以前の操作によりその上限を超えてしまっている可能性があります。
+> まれにログインに失敗したり、待たされることがあります。Community EditionはMAX 5セッションまでですが、以前の何らかの操作によりその上限を超えてしまっている可能性があります。その場合、ライセンス上限を超えた旨のメッセージがログされます。
 
 ```
 $ kubectl logs data-0
@@ -253,7 +261,6 @@ $ kubectl logs data-0
   ・
 05/17/21-19:21:17:417 (2334) 2 [Generic.Event] License limit exceeded 1 times since instance start.
 ```
-
 
 ## Longhornを使用する場合
 
@@ -337,3 +344,6 @@ longhorn-uninstall   1/1           24s        26s
 $ kubectl delete -Rf deploy/install
 $ kubectl delete -f deploy/uninstall/uninstall.yaml
 ```
+
+## InterSystems Kubernetes Operator
+IKOもmicrok8sで動作しますが、Community向けの機能ではないので、今回のご紹介は見送りました。
