@@ -67,6 +67,8 @@ spec:
         app: iris
     spec:
       terminationGracePeriodSeconds: 10
+      securityContext: 
+        fsGroup: 52773
       containers:
       - name: iris
         image: localhost:32000/simple

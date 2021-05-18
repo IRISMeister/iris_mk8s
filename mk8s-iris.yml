@@ -65,6 +65,8 @@ spec:
         app: iris
     spec:
       terminationGracePeriodSeconds: 10
+      securityContext: 
+        fsGroup: 52773
       containers:
       - name: iris
         image: containers.intersystems.com/intersystems/iris-community:2021.1.0.205.0
