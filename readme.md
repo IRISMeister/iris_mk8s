@@ -1,5 +1,5 @@
 ## 目的
-Japan Virtual Summit 2021で、Kubernetesに関するセッションを実施させていただいたのですが、こちらはAzureのアカウントやIRIS評価用ライセンスキーをお持ちの方が対象になっていました。もう少し手軽に試してみたいとお考えの開発者の方もおられると思いおますので、本記事では仮想環境でも利用可能なk8sの軽量実装である[mirok8s](https://microk8s.io/)で、IRIS Community Editionを稼働させる手順をご紹介いたします。
+Japan Virtual Summit 2021で、Kubernetesに関するセッションを実施させていただいたのですが、AzureのアカウントやIRIS評価用ライセンスキーをお持ちの方が対象になっていました。もう少し手軽に試してみたいとお考えの開発者の方もおられると思いおますので、本記事では仮想環境でも利用可能なk8sの軽量実装である[mirok8s](https://microk8s.io/)で、IRIS Community Editionを稼働させる手順をご紹介いたします。
 
 参考までに私の環境は以下の通りです。
 |用途|O/S|ホストタイプ|IP|
@@ -36,23 +36,33 @@ NAME     STATUS   ROLES    AGE   VERSION
 ubuntu   Ready    <none>   10d   v1.20.7-34+df7df22a741dbc
 ```
 
+kubectl実行時に毎回microk8sをつけるのは手間なので、下記コマンドでエリアスを設定しました。以降の例ではmicrok8sを省略しています。
+
+```
+$ sudo snap alias microk8s.kubectl kubectl
+$ kubectl get node
+NAME     STATUS   ROLES    AGE   VERSION
+ubuntu   Ready    <none>   10d   v1.20.7-34+df7df22a741dbc
+```
+> 元の状態に戻すには sudo snap unalias kubectl
+
 ## 起動
 ```
-$ microk8s kubectl apply -f mk8s-iris.yml
+$ kubectl apply -f mk8s-iris.yml
 ```
 
-> IRIS Community版なので、ライセンスキーもコンテナレジストリにログインするためのimagePullSecretsも指定していません
+> IRIS Community版なので、ライセンスキーもコンテナレジストリにログインするためのimagePullSecretsも指定していません。
 
 しばらくするとポッドが2個作成されます。これでIRISが起動しました。
 ```
-$ microk8s kubectl get pod
+$ kubectl get pod
 NAME     READY   STATUS    RESTARTS   AGE
 data-0   1/1     Running   0          107s
 data-1   1/1     Running   0          86s
-$ microk8s kubectl get statefulset
+$ kubectl get statefulset
 NAME   READY   AGE
 data   2/2     3m32s
-$ microk8s kubectl get service
+$ kubectl get service
 NAME         TYPE           CLUSTER-IP       EXTERNAL-IP      PORT(S)           AGE
 kubernetes   ClusterIP      10.152.183.1     <none>           443/TCP           30m
 iris         ClusterIP      None             <none>           52773/TCP         8m55s
@@ -61,15 +71,15 @@ iris-ext     LoadBalancer   10.152.183.137   192.168.11.110   52773:31707/TCP   
 
 ポッドがrunningにならない場合、下記コマンドでイベントを確認できます。イメージ名を間違って指定していてPullが失敗したり、なんらかのリソースが不足していることが考えられます。
 ```
-$ microk8s kubectl get pod
+$ kubectl get pod
 NAME     READY   STATUS             RESTARTS   AGE
 data-0   0/1     ImagePullBackOff   0          32s
-$ microk8s kubectl describe pod data-0
+$ kubectl describe pod data-0
 ```
 
 下記コマンドでirisにO/S認証でログインできます。
 ```
-$ microk8s kubectl exec -it data-0 -- iris session iris
+$ kubectl exec -it data-0 -- iris session iris
 Node: data-0, Instance: IRIS
 USER>
 ```
@@ -78,7 +88,7 @@ USER>
 
 下記コマンドで各ポッドの内部IPアドレスを確認します。
 ```
-$ microk8s kubectl get pod -o wide
+$ kubectl get pod -o wide
 NAME     READY   STATUS    RESTARTS   AGE   IP             NODE     NOMINATED NODE   READINESS GATES
 data-0   1/1     Running   0          46m   10.1.243.202   ubuntu   <none>           <none>
 data-1   1/1     Running   0          45m   10.1.243.203   ubuntu   <none>           <none>
@@ -106,24 +116,15 @@ C:\temp>ssh -L 9093:10.1.243.203:52773 YourLinuxUserName@192.168.11.49
 |IRISSYS|/iris-mgr/IRIS_conf.d/mgr/|
 |TEST-DATA|/vol-data/TEST-DATA/|
 
-> まれにポータルにログインできなかったり、待たされることがあります。Community EditionはMAX 5セッションまでですので、その上限を超えてしまっている可能性があります。
-
-```
-$ microk8s kubectl logs data-0
-  ・
-  ・
-05/17/21-19:21:17:417 (2334) 2 [Generic.Event] License limit exceeded 1 times since instance start.
-```
-
 ## 停止
 作成したリソースを削除します。
 ```
-$ microk8s kubectl delete -f mk8s-iris.yml --wait
+$ kubectl delete -f mk8s-iris.yml --wait
 ```
 これで、IRISのポッドも削除されますが、PVは保存されたままになっていることに留意ください。これにより、次回に同じ名前のポッドが起動した際には、以前と同じボリュームが提供されます。これによりポッドのライフサイクルと、データベースのライフサイクルの分離が可能となります。次のコマンドでPVも削除出来ます(データベースの内容も永久に失われます)。
 
 ```
-$ microk8s kubectl delete pvc --all
+$ kubectl delete pvc --all
 ```
 
 O/Sをシャットダウンする際には下記を実行すると、k8s環境を綺麗に停止します。
@@ -135,7 +136,7 @@ O/S再起動後には下記コマンドでk8s環境を起動できます。
 $ microk8s start
 ```
 
-microk8s環境を完全に消去したい場合は、microk8s stopを実行する前に下記を実行します。(やたらと時間がかかりました。日頃は実行しなくて良いと思います)
+microk8s環境を完全に消去したい場合は、microk8s stopを「実行する前」に下記を実行します。(やたらと時間がかかりました。日頃は実行しなくて良いと思います)
 ```
 $ microk8s reset --destroy-storage
 ```
@@ -143,9 +144,10 @@ $ microk8s reset --destroy-storage
 
 ## 観察
 ### ストレージの場所
-興味本位の観察ではありますが、/iris-mgr/はどこに存在するのでしょう？microk8sはスタンドアロンで起動するk8s環境ですので、ファイルの実体は同ホスト上にあります。まずはkubectl get pvで、作成されたPVを確認します。
+興味本位の観察ではありますが、/iris-mgr/はどこに存在するのでしょう？microk8sはスタンドアロンで起動するk8s環境ですので、storageClassNameがmicrok8s-hostpathの場合、ファイルの実体は同ホスト上にあります。まずはkubectl get pvで、作成されたPVを確認します。
 ```
-$ microk8s kubectl get pv
+$ kubectl apply -f mk8s-iris.yml
+$ kubectl get pv
 NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                               STORAGECLASS        REASON   AGE
 pvc-ee660281-1de4-4115-a874-9e9c4cf68083   20Gi       RWX            Delete           Bound    container-registry/registry-claim   microk8s-hostpath            37m
 pvc-772484b1-9199-4e23-9152-d74d6addd5ff   5Gi        RWO            Delete           Bound    default/dbv-data-data-0             microk8s-hostpath            10m
@@ -156,7 +158,7 @@ pvc-48ea60e8-338e-4e28-9580-b03c9988aad8   5Gi        RWO            Delete     
 ここで、data-0ポッドのISC_DATA_DIRECTORYに使用されている、default/dbv-mgr-data-0 をdescribeします。
 
 ```
-$ microk8s kubectl describe pv pvc-112aa77e-2f2f-4632-9eca-4801c4b3c6bb
+$ kubectl describe pv pvc-112aa77e-2f2f-4632-9eca-4801c4b3c6bb
   ・
   ・
 Source:
@@ -186,7 +188,7 @@ metadata:
 nslookupを使いたいのですが、kubectlやk8sで使用されているコンテナランタイム(ctr)にはdockerのようにrootでログインする機能がありません。また、IRISのコンテナイメージはセキュリティ上の理由でsudoをインストールしていませんので、イメージのビルド時以外のタイミングで追加でソフトウェアをapt install出来ません。ここではbusyboxを追加で起動して、そこでnslookupを使ってホスト名を確認します。
 
 ```
-$ microk8s kubectl run -i --tty --image busybox:1.28 dns-test --restart=Never --rm
+$ kubectl run -i --tty --image busybox:1.28 dns-test --restart=Never --rm
 / # nslookup data-0.iris
 Server:    10.152.183.10
 Address 1: 10.152.183.10 kube-dns.kube-system.svc.cluster.local
@@ -201,7 +203,7 @@ Address 1: 10.1.243.202 data-0.iris.default.svc.cluster.local
 現在のk8sはDockerを使用していません。ですので、イメージのビルドを行うためには別途Dockerのセットアップが必要です。
 > k8sはあくまで運用環境のためのものです  
 
-ここでは、それが済んでいる前提で話を進めます。イメージはどんな内容でも構いません。ここでは例として[simple](https://github.com/IRISMeister/simple)を使用します。このイメージはMYAPPというネームスペース上で、ごく簡単なRESTサービスを提供するIRISの派生イメージです。localhost:32000はk8sが用意したコンテナレポジトリで、そこにこのイメージをpushします。
+ここでは、Docker及びdocker-composeのセットアップが済んでいる前提で話を進めます。イメージはどんな内容でも構いません。ここでは例として[simple](https://github.com/IRISMeister/simple)を使用します。このイメージはMYAPPというネームスペース上で、ごく簡単なRESTサービスを提供するIRISイメージをベースにしたイメージです。localhost:32000はk8sが用意したコンテナレポジトリで、そこにこのイメージをpushします。
 
 ```
 $ git clone https://github.com/IRISMeister/simple.git
@@ -210,7 +212,7 @@ $ ./build.sh
 $ docker tag dpmeister/simple:latest localhost:32000/simple:latest
 $ docker push localhost:32000/simple:latest
 ```
-> ビルド行程がご面倒であれば、ビルド済みのイメージがdpmeister/simple:latestとして保存してありますので、下記のようにpullして、そのまま使用することも可能です。でも内容のわからない非公式コンテナイメージって...ちょっと気持ち悪いですよね。
+> ビルド行程がご面倒であれば、ビルド済みのイメージがdpmeister/simple:latestとして保存してありますので、下記のようにpullして、そのまま使用することも可能です。でも内容のわからない非公式コンテナイメージって...ちょっと気持ち悪いかも、ですよね。
 ```
 $ docker pull dpmeister/simple:latest
 $ docker tag dpmeister/simple:latest localhost:32000/simple:latest
@@ -221,12 +223,12 @@ ymlを編集してimageをlocalhost:32000/simpleに書き換えます。デー�
 
 既にポッドを起動しているのであれば、削除します。
 ```
-$ microk8s kubectl delete -f mk8s-iris.yml
-$ microk8s kubectl delete pvc --all
+$ kubectl delete -f mk8s-iris.yml
+$ kubectl delete pvc --all
 ```
 ```
-$ microk8s kubectl apply -f mk8s-simple.yml
-$ microk8s kubectl get svc
+$ kubectl apply -f mk8s-simple.yml
+$ kubectl get svc
 NAME         TYPE           CLUSTER-IP       EXTERNAL-IP      PORT(S)           AGE
 kubernetes   ClusterIP      10.152.183.1     <none>           443/TCP           3h36m
 iris         ClusterIP      None             <none>           52773/TCP         20m
@@ -243,6 +245,15 @@ $ curl -s -H "Content-Type: application/json; charset=UTF-8" -H "Accept:applicat
 ```
 curlの実行を繰り返すと、HostName(RESTサービスが動作したホスト名)がdata-0だったりdata-1だったりしますが、これは(期待通りに)ロードバランスされているためです。
 
+> まれにログインに失敗したり、待たされることがあります。Community EditionはMAX 5セッションまでですので、以前の操作によりその上限を超えてしまっている可能性があります。
+
+```
+$ kubectl logs data-0
+  ・
+  ・
+05/17/21-19:21:17:417 (2334) 2 [Generic.Event] License limit exceeded 1 times since instance start.
+```
+
 
 ## Longhornを使用する場合
 
@@ -250,8 +261,8 @@ curlの実行を繰り返すと、HostName(RESTサービスが動作したホス
 
 longhornを起動し、すべてのポッドがREADYになるまで待ちます。
 ```
-$ microk8s kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
-$ microk8s kubectl -n longhorn-system get pods
+$ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
+$ kubectl -n longhorn-system get pods
 NAME                                       READY   STATUS    RESTARTS   AGE
 longhorn-ui-5b864949c4-72qkz               1/1     Running   0          4m3s
 longhorn-manager-wfpnl                     1/1     Running   0          4m3s
@@ -274,26 +285,32 @@ csi-attacher-5df5c79d4b-gcf4l              1/1     Running   0          3m21s
 csi-snapshotter-76c6f569f9-fjx2h           1/1     Running   0          3m19s
 ```
 
-mk8s-iris.ymlの全てのstorageClassNameをlonghornに変更してください。
+mk8s-iris.ymlの全て(2箇所あります)のstorageClassNameをlonghornに変更してください。
 もし、microk8s_hostpathで既に起動しているのであれば、ポッド、PVともに全て削除したうえで、上述の手順を実行してください。つまり...
 
 ```
-$ microk8s kubectl delete -f mk8s-iris.yml --wait
-$ microk8s kubectl delete pvc --all
+$ kubectl delete -f mk8s-iris.yml --wait
+$ kubectl delete pvc --all
    mk8s-iris.yml編集
       前)storageClassName: microk8s-hostpath
       後)storageClassName: longhorn
 
-$ microk8s kubectl apply -f mk8s-iris.yml
+$ kubectl apply -f mk8s-iris.yml
 ```
+> マウントしたLonghorn由来のボリュームのオーナがrootになっていたのでfsGroupを指定しています。これ無しでは、データベース作成時にプロテクションエラーが発生します。
+> ```
+> irisowner@data-0:~$ ls / -l
+> drwxr-xr-x   3 root      root         4096 May 18 15:40 vol-data
+> ```
+
 以降は、同様です。Longhornが不要になった場合は、下記のコマンドで削除しておくと良いようです。
 ```
-$ microk8s kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
+$ kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
 ```
 
 Longhornの前回の使用時に綺麗に削除されなかった場合に、下記のようなエラーが出ることがあります。
 ```
-$ microk8s kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
   ・
   ・
 Error from server (Forbidden): error when creating "https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml": serviceaccounts "longhorn-service-account" is forbidden: unable to create new content in namespace longhorn-system because it is being terminated
@@ -306,17 +323,17 @@ Error from server (Forbid
 $ git clone https://github.com/longhorn/longhorn-manager.git
 $ cd longhorn-manager
 $ make
-$ microk8s kubectl create -f deploy/uninstall/uninstall.yaml
+$ kubectl create -f deploy/uninstall/uninstall.yaml
 podsecuritypolicy.policy/longhorn-uninstall-psp created
 serviceaccount/longhorn-uninstall-service-account created
 clusterrole.rbac.authorization.k8s.io/longhorn-uninstall-role created
 clusterrolebinding.rbac.authorization.k8s.io/longhorn-uninstall-bind created
 job.batch/longhorn-uninstall created
-$ microk8s kubectl get job/longhorn-uninstall -w
+$ kubectl get job/longhorn-uninstall -w
 NAME                 COMPLETIONS   DURATION   AGE
 longhorn-uninstall   0/1           12s        14s
 longhorn-uninstall   1/1           24s        26s
 ^C
-$ microk8s kubectl delete -Rf deploy/install
-$ microk8s kubectl delete -f deploy/uninstall/uninstall.yaml
+$ kubectl delete -Rf deploy/install
+$ kubectl delete -f deploy/uninstall/uninstall.yaml
 ```
