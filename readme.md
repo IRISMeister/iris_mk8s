@@ -5,17 +5,14 @@ Japan Virtual Summit 2021で、Kubernetesに関するセッションを実施さ
 |用途|O/S|ホストタイプ|IP|
 |:--|:--|:--|:--|
 |クライアントPC|Windows10 Pro|物理ホスト|192.168.11.5/24|
-|mirok8s環境|Ubuntsu 20.04.1 LTS|上記Windows10上の仮想ホスト(vmware)|192.168.11.49/24|
+|mirok8s環境|ubuntu 20.04.1 LTS|上記Windows10上の仮想ホスト(vmware)|192.168.11.49/24|
 
-Ubuntsuは、[ubuntu-20.04.1-live-server-amd64.iso](http://old-releases.ubuntu.com/releases/20.04.1/ubuntu-20.04.1-live-server-amd64.iso)を使用して、最低限のサーバ機能のみをインストールしました。
+ubuntuは、[ubuntu-20.04.1-live-server-amd64.iso](http://old-releases.ubuntu.com/releases/20.04.1/ubuntu-20.04.1-live-server-amd64.iso)を使用して、最低限のサーバ機能のみをインストールしました。
 
 ## 概要
 IRIS Community EditionをKubernetesのStatefulSetとしてデプロイする手順を記します。
 IRISのシステムファイルやユーザデータベースを外部保存するための永続化ストレージには、microk8s_hostpathもしくはLonghornを使用します。  
 使用するコードは[こちら](https://github.com/IRISMeister/iris_mk8s)にあります。
-
-> 2021.1のプレビューバージョンを使用しています。2021.1が正式リリースされた際には、イメージ名が差し変わるため、そのままでは動作しなくなります。ymlのimage:の値を必要に応じて修正してください。
-
 
 ## インストレーション
 microk8sをインストール・起動します。 
@@ -23,7 +20,6 @@ microk8sをインストール・起動します。
 ```
 $ sudo snap install microk8s --classic --channel=1.20
 $ sudo usermod -a -G microk8s $USER
-$ sudo chown -f -R $USER ~/.kub
 $ microk8s start
 $ microk8s enable dns registry storage metallb
   ・
@@ -31,16 +27,27 @@ $ microk8s enable dns registry storage metallb
 Enabling MetalLB
 Enter each IP address range delimited by comma (e.g. '10.64.140.43-10.64.140.49,192.168.0.105-192.168.0.111'):192.168.11.110-192.168.11.130
 ```
-ロードバランサに割り当てるIPのレンジを聞かれますので、適切な範囲を設定します。私の環境はk8sが稼働しているホストのCIDRは192.168.11.49/24ですので適当な空いているIPのレンジとして、[192.168.11.110-192.168.11.130]と指定しました。
+ロードバランサに割り当てるIPのレンジを聞かれますので、適切な範囲を設定します。私の環境はk8sが稼働しているホストのCIDRは192.168.11.49/24ですので適当な空いているIPのレンジとして、[192.168.11.110-192.168.11.130]と指定しました。  
 
 この時点で、シングルノードのk8s環境が準備されます。
 ```
+$ microk8s kubectl get pods -A
+NAMESPACE            NAME                                      READY   STATUS    RESTARTS   AGE
+metallb-system       speaker-gnljw                             1/1     Running   0          45s
+metallb-system       controller-559b68bfd8-bkrdz               1/1     Running   0          45s
+kube-system          hostpath-provisioner-5c65fbdb4f-2z9j8     1/1     Running   0          48s
+kube-system          calico-node-bwp2z                         1/1     Running   0          65s
+kube-system          coredns-86f78bb79c-gnd2n                  1/1     Running   0          57s
+kube-system          calico-kube-controllers-847c8c99d-pzvnb   1/1     Running   0          65s
+container-registry   registry-9b57d9df8-bt9tf                  1/1     Running   0          48s
 $ microk8s kubectl get node
 NAME     STATUS   ROLES    AGE   VERSION
 ubuntu   Ready    <none>   10d   v1.20.7-34+df7df22a741dbc
 ```
 
 kubectl実行時に毎回microk8sをつけるのは手間なので、下記コマンドでエリアスを設定しました。以降の例ではmicrok8sを省略しています。
+> 注意 
+> すでに"普通の"kubectlがインストールされていると、そちらが優先されてしまいますので、alias名をkubectl2にするなど衝突しないようにしてください。
 
 ```
 $ sudo snap alias microk8s.kubectl kubectl
@@ -76,13 +83,33 @@ iris-ext     LoadBalancer   10.152.183.137   192.168.11.110   52773:31707/TCP   
 ポッドのSTATUSがrunningにならない場合、下記コマンドでイベントを確認できます。イメージ名を間違って指定していてPullが失敗したり、なんらかのリソースが不足していることが考えられます。
 ```
 $ kubectl describe pod data-0
-```
+
+Events:
+  Type     Reason            Age                From               Message
+  ----     ------            ----               ----               -------
+  Warning  FailedScheduling  4m (x3 over 4m3s)  default-scheduler  0/1 nodes are available: 1 pod has unbound immediate PersistentVolumeClaims.
+  Normal   Scheduled         3m56s              default-scheduler  Successfully assigned default/data-0 to ubuntu
+  Normal   Pulling           3m56s              kubelet            Pulling image "containers.intersystems.com/intersystems/iris-community:2021.1.0.215.3"
+  Normal   Pulled            69s                kubelet            Successfully pulled image "containers.intersystems.com/intersystems/iris-community:2021.1.0.215.3" in 2m46.607639152s
+  Normal   Created           69s                kubelet            Created container iris
+  Normal   Started           68s                kubelet            Started container iris
+  ```
 
 下記コマンドでirisにO/S認証でログインできます。
 ```
 $ kubectl exec -it data-0 -- iris session iris
 Node: data-0, Instance: IRIS
 USER>
+```
+
+下記で各IRISインスタンスが使用するPVCが確保されていることが確認できます。
+```
+$ kubectl get pvc
+NAME              STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS        AGE
+dbv-mgr-data-0    Bound    pvc-fbfdd797-f90d-4eac-83a8-f81bc608d4bc   5Gi        RWO            microk8s-hostpath   12m
+dbv-data-data-0   Bound    pvc-b906a687-c24c-44fc-acd9-7443a2e6fec3   5Gi        RWO            microk8s-hostpath   12m
+dbv-mgr-data-1    Bound    pvc-137b0ccf-406b-40ac-b8c5-6eed8534a6fb   5Gi        RWO            microk8s-hostpath   9m3s
+dbv-data-data-1   Bound    pvc-4f2be4f1-3691-4f7e-ba14-1f0461d59c76   5Gi        RWO            microk8s-hostpath   9m3s
 ```
 
 ## 個別のポッド上のIRISの管理ポータルにアクセスする
@@ -96,7 +123,7 @@ data-1   1/1     Running   0          45m   10.1.243.203   ubuntu   <none>      
 $
 ```
 
-> 通常、内部IPはkubectl実行ホストから直接参照できません(参照するためにkubectl port-forwardを使用します)が、今回のmicrok8s環境は全て同じホストで稼働しているのでアクセス可能です。
+> 通常、内部IPにはkubectl実行ホストから直接到達できません(アクセスするためにkubectl port-forwardを使用します)が、今回のmicrok8s環境は全て同じVMホストで稼働しているのでアクセス可能です。
 
 私の仮想環境のLinuxはGUIがありませんので、下記のコマンドをクライアントPCで実行することで、Windowsのブラウザから管理ポータルにアクセスできるようにしました。
 
@@ -125,7 +152,7 @@ C:\temp>ssh -L 9093:10.1.243.203:52773 YourLinuxUserName@192.168.11.49
 ```
 $ kubectl delete -f mk8s-iris.yml --wait
 ```
-これで、IRISのポッドも削除されますが、PVは保存されたままになっていることに留意ください。これにより、次回に同じ名前のポッドが起動した際には、以前と同じボリュームが提供されます。これによりポッドのライフサイクルと、データベースのライフサイクルの分離が可能となります。次のコマンドでPVも削除出来ます(データベースの内容も永久に失われます)。
+これで、IRISのポッドも削除されますが、PVCは保存されたままになっていることに留意ください。これにより、次回に同じ名前のポッドが起動した際には、以前と同じボリュームが提供されます。これによりポッドのライフサイクルと、データベースのライフサイクルの分離が可能となります。次のコマンドでPVCも削除出来ます(データベースの内容も永久に失われます)。
 
 ```
 $ kubectl delete pvc --all
@@ -305,18 +332,37 @@ $ kubectl delete pvc --all
 
 $ kubectl apply -f mk8s-iris.yml
 ```
-> マウントしたLonghorn由来のボリュームのオーナがrootになっていたのでfsGroupを指定しています。これ無しでは、データベース作成時にプロテクションエラーが発生します。
+> マウントしたLonghorn由来のボリュームのオーナがrootになっていたのでsecurityContext:fsGroupを指定しています。これ無しでは、データベース作成時にプロテクションエラーが発生します。  
+> fsGroup指定なしの場合
 > ```
-> irisowner@data-0:~$ ls / -l
+> $ kubectl exec -it data-0 -- ls / -l
 > drwxr-xr-x   3 root      root         4096 May 18 15:40 vol-data
 > ```
+> fsGroup指定ありの場合
+> ```
+> $ kubectl exec -it data-0 -- ls / -l
+> drwxrwsr-x   4 root      irisuser     4096 Jan  5 17:09 vol-data
+> ```
 
-以降は、同様です。Longhornが不要になった場合は、下記のコマンドで削除しておくと良いようです。
+下記実行後にローカルPCのブラウザからhttp://localhost:8000/ で、Longhorn UIを参照できます。
+```
+$ kubectl -n longhorn-system get pods -o wide | grep ui
+longhorn-ui-9fdb94f9-zbm97                  1/1     Running   0          8m49s   10.1.243.201   ubuntu   <none>           <none>
+C:\temp>ssh -L 8000:10.1.243.201:8000 iwamoto@192.168.11.49
+```
+
+以降は、同様です。  
+```
+$ kubectl delete -f mk8s-iris.yml
+$ kubectl delete pvc --all
+```
+
+Longhornが不要になった場合は、下記のコマンドで削除しておくと良いようです。  
 ```
 $ kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
 ```
 
-Longhornの前回の使用時に綺麗に削除されなかった場合に、下記のようなエラーが出ることがあります。
+Longhornの前回の使用時に綺麗に削除されなかった場合に、apply時に下記のようなエラーが出ることがあります。
 ```
 $ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
   ・
@@ -341,7 +387,7 @@ $ kubectl get job/longhorn-uninstall -w
 NAME                 COMPLETIONS   DURATION   AGE
 longhorn-uninstall   0/1           12s        14s
 longhorn-uninstall   1/1           24s        26s
-^C
+^C <==しばらく待ってからctrl-cで止める
 $ kubectl delete -Rf deploy/install
 $ kubectl delete -f deploy/uninstall/uninstall.yaml
 ```
