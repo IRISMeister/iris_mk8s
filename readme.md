@@ -123,21 +123,17 @@ data-1   1/1     Running   0          45m   10.1.243.203   ubuntu   <none>      
 $
 ```
 
-> 通常、内部IPにはkubectl実行ホストから直接到達できません(アクセスするためにkubectl port-forwardを使用します)が、今回のmicrok8s環境は全て同じVMホストで稼働しているのでアクセス可能です。
-
-私の仮想環境のLinuxはGUIがありませんので、下記のコマンドをクライアントPCで実行することで、Windowsのブラウザから管理ポータルにアクセスできるようにしました。
+私の仮想環境のLinuxはGUIがありませんので、下記のコマンドを実行することで、Windowsのブラウザから管理ポータルにアクセスできるようにしました。
 
 ```
-C:\temp>ssh -L 9092:10.1.243.202:52773 YourLinuxUserName@192.168.11.49
-C:\temp>ssh -L 9093:10.1.243.203:52773 YourLinuxUserName@192.168.11.49
+$ kubectl port-forward data-0 --address 0.0.0.0 9092:52773
+$ kubectl port-forward data-1 --address 0.0.0.0 9093:52773
 ```
-> 内部IPはポッドが再作成される度に変更されます
-
 
 |対象|URL|ユーザ|パスワード|
 |:--|:--|:--|:--|
-|ポッドdata-0上のIRIS|http://localhost:9092/csp/sys/%25CSP.Portal.Home.zen|SuperUser|SYS|
-|ポッドdata-1上のIRIS|http://localhost:9093/csp/sys/%25CSP.Portal.Home.zen|SuperUser|SYS|
+|ポッドdata-0上のIRIS|http://192.168.11.49:9092/csp/sys/%25CSP.Portal.Home.zen|SuperUser|SYS|
+|ポッドdata-1上のIRIS|http://192.168.11.49:9093/csp/sys/%25CSP.Portal.Home.zen|SuperUser|SYS|
 
 > パスワードはCPFのPasswordHashで指定しています
 
@@ -292,7 +288,11 @@ $ kubectl logs data-0
 
 ## Longhornを使用する場合
 
-> 分散KubernetesストレージLonghornについては、[こちら](https://www.rancher.co.jp/pdfs/doc/doc-02-Hajimete_Longhorn.pdf)を参照ください。
+> 分散KubernetesストレージLonghornについては、[こちら](https://www.rancher.co.jp/pdfs/doc/doc-02-Hajimete_Longhorn.pdf)を参照ください。  
+
+IRISのようなデータベース製品にとってのメリットは、クラウド環境でアベーラビリティゾーンをまたいだデータベースの冗長構成を組めることにあります。アベーラビリティゾーン全体の停止への備えは、ミラー構成を組むことで実現しますが、Kubernetes環境であれば、分散Kubernetesストレージの採用という選択子が増えます。  
+
+> ミラー構成とは異なり、データベース以外のファイルも保全できるというメリットもあります。ただしパフォーマンスへの[負のインパクト](https://longhorn.io/blog/performance-scalability-report-aug-2020/)には要注意です。
 
 longhornを起動し、すべてのポッドがREADYになるまで待ちます。
 ```
@@ -345,20 +345,20 @@ $ kubectl apply -f mk8s-iris.yml
 > drwxrwsr-x   4 root      irisuser     4096 Jan  5 17:09 vol-data
 > ```
 
-下記を実行すれば、ローカルPCのブラウザから、[Longhorn UI](http://localhost:8000/)を参照できます。
+下記を実行すれば、Windowsのブラウザから、[Longhorn UI](http://192.168.11.49:8000/)を参照できます。
 ```
 $ kubectl -n longhorn-system get pods -o wide | grep ui
 longhorn-ui-9fdb94f9-zbm97                  1/1     Running   0          8m49s   10.1.243.201   ubuntu   <none>           <none>
-C:\temp>ssh -L 8000:10.1.243.201:8000 iwamoto@192.168.11.49
+$ kubectl -n longhorn-system port-forward longhorn-ui-9fdb94f9-zbm97 --address 0.0.0.0 8000:8000
 ```
 
-以降は、同様です。  
+以降の操作は、同様です。不要になれば削除します。  
 ```
 $ kubectl delete -f mk8s-iris.yml
 $ kubectl delete pvc --all
 ```
 
-Longhornが不要になった場合は、下記のコマンドで削除しておくと良いようです。  
+Longhorn環境が不要になった場合は、下記のコマンドで削除しておくと良いようです。  
 ```
 $ kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/v1.2.3/deploy/longhorn.yaml
 ```
