@@ -103,6 +103,8 @@ spec:
   volumeClaimTemplates:
   - metadata:
       name: dbv-mgr
+      labels:
+        app: iris
     spec:
       accessModes: [ "ReadWriteOnce" ]
       storageClassName: microk8s-hostpath
@@ -112,6 +114,8 @@ spec:
           storage: 5Gi
   - metadata:
       name: dbv-data
+      labels:
+        app: iris
     spec:
       accessModes: [ "ReadWriteOnce" ]
       storageClassName: microk8s-hostpath
