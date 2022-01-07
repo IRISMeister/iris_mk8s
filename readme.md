@@ -262,7 +262,7 @@ mk8s-simple.ymlを編集
 既にポッドを起動しているのであれば、削除します。
 ```
 $ kubectl delete -f mk8s-iris.yml
-$ kubectl delete pvc --all
+$ kubectl delete pvc -l app=iris
 ```
 ```
 $ kubectl apply -f mk8s-simple.yml
@@ -300,6 +300,7 @@ IRISのようなデータベース製品にとってのメリットは、クラ�
 
 > ミラー構成とは異なり、データベース以外のファイルも保全できるというメリットもあります。ただしパフォーマンスへの[負のインパクト](https://longhorn.io/blog/performance-scalability-report-aug-2020/)には要注意です。
 
+### 起動方法
 longhornを起動し、すべてのポッドがREADYになるまで待ちます。
 ```
 $ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.2.3/deploy/longhorn.yaml
@@ -327,11 +328,11 @@ csi-snapshotter-76c6f569f9-fjx2h           1/1     Running   0          3m19s
 ```
 
 mk8s-iris.ymlの全て(2箇所あります)のstorageClassNameをlonghornに変更してください。
-もし、microk8s_hostpathで既に起動しているのであれば、ポッド、PVともに全て削除したうえで、上述の手順を実行してください。つまり...
+もし、microk8s_hostpathで既に起動しているのであれば、ポッド、PVCともに全て削除したうえで、上述の手順を実行してください。つまり...
 
 ```
 $ kubectl delete -f mk8s-iris.yml --wait
-$ kubectl delete pvc --all
+$ kubectl delete pvc -l app=iris
 
 mk8s-iris.yml編集
 前)storageClassName: microk8s-hostpath
@@ -364,11 +365,13 @@ $ kubectl delete -f mk8s-iris.yml
 $ kubectl delete pvc --all
 ```
 
+### 削除方法
 Longhorn環境が不要になった場合は、下記のコマンドで削除しておくと良いようです。  
 ```
 $ kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/v1.2.3/deploy/longhorn.yaml
 ```
 
+### apply時のエラー
 Longhornの前回の使用時に綺麗に削除されなかった場合に、apply時に下記のようなエラーが出ることがあります。
 ```
 $ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
@@ -397,6 +400,13 @@ longhorn-uninstall   1/1           24s        26s
 ^C <==しばらく待ってからctrl-cで止める
 $ kubectl delete -Rf deploy/install
 $ kubectl delete -f deploy/uninstall/uninstall.yaml
+```
+
+### その他気づいた事
+storageClassにmicrok8s_hostpathを指定した場合、[マルチノード環境](https://microk8s.io/docs/clustering)ではsecurityContext:fsGroupが正しく機能しないようです。その結果、下記のようなエラーが発生して、データベースの作成に失敗します(Error=-13はPermission denieです)。longhornは問題なく動作しました。
+```
+01/07/22-23:11:32:729 (1205) 1 [Utility.Event] ERROR #503: Error executing [Actions] section in file /iris-mgr/IRIS_conf.d/merge_actions.cpf
+01/07/22-23:11:32:729 (1205) 1 [Utility.Event] ERROR #507: Action 'CreateDatabase' failed at line 2, Method Config.CPF:CreateOneDatabase(), Error=ERROR #5032: Cannot create directory '/vol-data/db/TEST-DATA/, Error=-13'
 ```
 
 ## InterSystems Kubernetes Operator
