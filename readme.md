@@ -235,8 +235,15 @@ Address 1: 10.1.243.202 data-0.iris.default.svc.cluster.local
 現在のk8sはDockerを使用していません。ですので、イメージのビルドを行うためには別途Dockerのセットアップが必要です。
 > k8sはあくまで運用環境のためのものです  
 
-ここでは、Docker及びdocker-composeのセットアップが済んでいる前提で話を進めます。イメージはどんな内容でも構いません。ここでは例として[simple](https://github.com/IRISMeister/simple)を使用します。このイメージはMYAPPネームスペース上で、ごく簡単なRESTサービスを提供します。localhost:32000はmicrok8sが用意した組み込みのコンテナレジストリで、そこにこのイメージをpushします。
+### サンプルイメージを使用する場合
+イメージはどんな内容でも構いませんが、ここでは例として[simple](https://github.com/IRISMeister/simple)を使用します。このイメージはMYAPPネームスペース上で、ごく簡単なRESTサービスを提供します。データの保存場所をコンテナ内のデータベース(MYAPP-DATA)から外部データベース(MYAPP-DATA-EXT)に切り替えるために、cpfのactionにModifyNamespaceを使用しています。  
+mk8s-simple.ymlとしてご用意しました(mk8s-iris.ymlとほとんど同じです)。これを使用して起動します。  
 
+### 自分でイメージをビルドする場合
+ご自身でビルドを行いたい場合は、下記の手順でmicrok8sが用意した組み込みのコンテナレジストリに、イメージをpushします。
+> 内容のわからない非公式コンテナイメージって...ちょっと気持ち悪いかも、ですよね。
+
+(Docker及びdocker-composeのセットアップが済んでいること)
 ```
 $ git clone https://github.com/IRISMeister/simple.git
 $ cd simple
@@ -244,15 +251,14 @@ $ ./build.sh
 $ docker tag dpmeister/simple:latest localhost:32000/simple:latest
 $ docker push localhost:32000/simple:latest
 ```
-> ビルド行程がご面倒であれば、ビルド済みのイメージがdpmeister/simple:latestとして保存してありますので、下記のようにpullして、そのまま使用することも可能です。でも内容のわからない非公式コンテナイメージって...ちょっと気持ち悪いかも、ですよね。
+このイメージを使用するように、ymlを書き換えます。
 ```
-$ docker pull dpmeister/simple:latest
-$ docker tag dpmeister/simple:latest localhost:32000/simple:latest
-$ docker push localhost:32000/simple:latest
+mk8s-simple.ymlを編集
+前)        image: dpmeister/simple:latest
+後)        image: localhost:32000/simple
 ```
 
-ymlを編集してimageをlocalhost:32000/simpleに書き換えます。データの保存場所をコンテナ内のデータベース(MYAPP-DATA)から外部データベース(MYAPP-DATA-EXT)に切り替えるために、cpfのactionにModifyNamespaceを追加します。編集済みのファイルをmk8s-simple.ymlとしてご用意しました(mk8s-iris.ymlとほとんど同じです)。これを使用して起動します。
-
+### 起動方法
 既にポッドを起動しているのであれば、削除します。
 ```
 $ kubectl delete -f mk8s-iris.yml
