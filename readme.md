@@ -4,7 +4,7 @@ Japan Virtual Summit 2021で、Kubernetesに関するセッションを実施さ
 参考までに私の環境は以下の通りです。
 |用途|O/S|ホストタイプ|IP|
 |:--|:--|:--|:--|
-|クライアントPC|Windows10 Pro|物理ホスト|192.168.11.5/24|
+|クライアントPC|Windows10 Pro|物理ホスト|172.X.X.30/24, (vmware NAT)192.168.11.1/24|
 |mirok8s環境|ubuntu 20.04.1 LTS|上記Windows10上の仮想ホスト(vmware)|192.168.11.49/24|
 
 ubuntuは、[ubuntu-20.04.1-live-server-amd64.iso](http://old-releases.ubuntu.com/releases/20.04.1/ubuntu-20.04.1-live-server-amd64.iso)を使用して、最低限のサーバ機能のみをインストールしました。
@@ -296,7 +296,7 @@ $ kubectl logs data-0
 
 longhornを起動し、すべてのポッドがREADYになるまで待ちます。
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.2.3/deploy/longhorn.yaml
 $ kubectl -n longhorn-system get pods
 NAME                                       READY   STATUS    RESTARTS   AGE
 longhorn-ui-5b864949c4-72qkz               1/1     Running   0          4m3s
@@ -326,9 +326,10 @@ mk8s-iris.ymlの全て(2箇所あります)のstorageClassNameをlonghornに変�
 ```
 $ kubectl delete -f mk8s-iris.yml --wait
 $ kubectl delete pvc --all
-   mk8s-iris.yml編集
-      前)storageClassName: microk8s-hostpath
-      後)storageClassName: longhorn
+
+mk8s-iris.yml編集
+前)storageClassName: microk8s-hostpath
+後)storageClassName: longhorn
 
 $ kubectl apply -f mk8s-iris.yml
 ```
@@ -344,7 +345,7 @@ $ kubectl apply -f mk8s-iris.yml
 > drwxrwsr-x   4 root      irisuser     4096 Jan  5 17:09 vol-data
 > ```
 
-下記実行後にローカルPCのブラウザからhttp://localhost:8000/ で、Longhorn UIを参照できます。
+下記を実行すれば、ローカルPCのブラウザから、[Longhorn UI](http://localhost:8000/)を参照できます。
 ```
 $ kubectl -n longhorn-system get pods -o wide | grep ui
 longhorn-ui-9fdb94f9-zbm97                  1/1     Running   0          8m49s   10.1.243.201   ubuntu   <none>           <none>
@@ -359,7 +360,7 @@ $ kubectl delete pvc --all
 
 Longhornが不要になった場合は、下記のコマンドで削除しておくと良いようです。  
 ```
-$ kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
+$ kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/v1.2.3/deploy/longhorn.yaml
 ```
 
 Longhornの前回の使用時に綺麗に削除されなかった場合に、apply時に下記のようなエラーが出ることがあります。
