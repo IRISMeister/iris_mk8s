@@ -71,7 +71,7 @@ spec:
         fsGroup: 52773
       containers:
       - name: iris
-        image: localhost:32000/simple
+        image: dpmeister/simple:latest
         readinessProbe:
           exec:
             command: ["/usr/irissys/dev/Cloud/ICM/waitISC.sh", "iris","1"]
