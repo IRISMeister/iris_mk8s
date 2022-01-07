@@ -16,6 +16,7 @@ data:
 
     [Actions]
     CreateDatabase:Name=TEST-DATA,Directory=/vol-data/TEST-DATA
+    CreateNamespace:Name=TEST,Globals=TEST-DATA,Routines=TEST-DATA
 
 ---
 apiVersion: v1
