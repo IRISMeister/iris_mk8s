@@ -362,7 +362,7 @@ $ kubectl -n longhorn-system port-forward longhorn-ui-9fdb94f9-zbm97 --address 0
 以降の操作は、同様です。不要になれば削除します。  
 ```
 $ kubectl delete -f mk8s-iris.yml
-$ kubectl delete pvc --all
+$ kubectl delete pvc -l app=iris
 ```
 
 ### 削除方法
