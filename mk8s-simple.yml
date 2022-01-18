@@ -18,7 +18,6 @@ data:
     CreateDatabase:Name=MYAPP-DATA-EXT,Directory=/vol-data/MYAPP-DATA
     ModifyNamespace:Name=MYAPP,Globals=MYAPP-DATA-EXT,Routines=MYAPP-CODE
 
-
 ---
 apiVersion: v1
 kind: Service
@@ -66,20 +65,11 @@ spec:
       labels:
         app: iris
     spec:
-      terminationGracePeriodSeconds: 10
       securityContext: 
         fsGroup: 52773
       containers:
       - name: iris
         image: dpmeister/simple:latest
-        readinessProbe:
-          exec:
-            command: ["/usr/irissys/dev/Cloud/ICM/waitISC.sh", "iris","1"]
-          failureThreshold: 30
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 2
         ports:
         - containerPort: 1972
         - containerPort: 52773
