@@ -171,8 +171,12 @@ $ microk8s reset --destroy-storage
 
 ## 観察
 ### ストレージの場所
-興味本位の観察ではありますが、/iris-mgr/はどこに存在するのでしょう？microk8sはスタンドアロンで起動するk8s環境ですので、storageClassNameがmicrok8s-hostpathの場合、ファイルの実体は同ホスト上にあります。まずはkubectl get pvで、作成されたPVを確認します。
+興味本位の観察ではありますが、/iris-mgr/はどこに存在するのでしょう？microk8sはスタンドアロンで起動するk8s環境ですので、storageClassNameがmicrok8s-hostpath(デフォルト値)の場合、ファイルの実体は同ホスト上にあります。まずはkubectl get pvで、作成されたPVを確認します。
 ```
+$ kubectl get sc
+NAME                          PROVISIONER            RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+microk8s-hostpath (default)   microk8s.io/hostpath   Delete          Immediate           false                  12d
+$
 $ kubectl apply -f mk8s-iris.yml
 $ kubectl get pv
 NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                               STORAGECLASS        REASON   AGE
@@ -327,15 +331,23 @@ csi-attacher-5df5c79d4b-gcf4l              1/1     Running   0          3m21s
 csi-snapshotter-76c6f569f9-fjx2h           1/1     Running   0          3m19s
 ```
 
-mk8s-iris.ymlの全て(2箇所あります)のstorageClassNameをlonghornに変更してください。
+この時点で、新たにStorageClassが追加されたことがわかります。
+```
+$ kubectl get sc
+NAME                          PROVISIONER            RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+microk8s-hostpath (default)   microk8s.io/hostpath   Delete          Immediate           false                  12d
+longhorn                      driver.longhorn.io     Delete          Immediate           true                   12d
+```
+
+mk8s-iris.ymlの全て(2箇所あります)のstorageClassNameをlonghornに指定してください。
 もし、microk8s_hostpathで既に起動しているのであれば、ポッド、PVCともに全て削除したうえで、上述の手順を実行してください。つまり...
 
 ```
 $ kubectl delete -f mk8s-iris.yml --wait
 $ kubectl delete pvc -l app=iris
 
-mk8s-iris.yml編集
-前)storageClassName: microk8s-hostpath
+mk8s-iris.ymlを編集してコメントをはずす
+前)#storageClassName: longhorn
 後)storageClassName: longhorn
 
 $ kubectl apply -f mk8s-iris.yml

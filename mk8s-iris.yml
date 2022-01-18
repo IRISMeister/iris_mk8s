@@ -99,7 +99,6 @@ spec:
         app: iris
     spec:
       accessModes: [ "ReadWriteOnce" ]
-      storageClassName: microk8s-hostpath
       #storageClassName: longhorn
       resources:
         requests:
@@ -110,7 +109,6 @@ spec:
         app: iris
     spec:
       accessModes: [ "ReadWriteOnce" ]
-      storageClassName: microk8s-hostpath
       #storageClassName: longhorn
       resources:
         requests:
