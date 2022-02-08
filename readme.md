@@ -379,9 +379,15 @@ $ kubectl delete pvc -l app=iris
 ```
 
 ### 削除方法
-Longhorn環境が不要になった場合は、下記のコマンドで削除しておくと良いようです。  
+Longhorn環境が不要になった場合は、下記のコマンドで削除しておくと良いようです(いきなりdeleteしてはダメ)。  
 ```
+$ kubectl create -f https://raw.githubusercontent.com/longhorn/longhorn/v1.2.3/uninstall/uninstall.yaml
+$ kubectl get job/longhorn-uninstall -n default -w
+NAME                 COMPLETIONS   DURATION   AGE
+longhorn-uninstall   1/1           79s        97s
+^C
 $ kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/v1.2.3/deploy/longhorn.yaml
+$ kubectl delete -f https://raw.githubusercontent.com/longhorn/longhorn/v1.2.3/uninstall/uninstall.yaml
 ```
 
 ### apply時のエラー
@@ -393,27 +399,7 @@ $ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/de
 Error from server (Forbidden): error when creating "https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml": serviceaccounts "longhorn-service-account" is forbidden: unable to create new content in namespace longhorn-system because it is being terminated
 Error from server (Forbid
 ```
-
-[ここ](https://github.com/longhorn/longhorn-manager)にあるlonghorn-managerを使用すると削除できるようです。私自身、つまずいたので、ご参考までに。
-
-```
-$ git clone https://github.com/longhorn/longhorn-manager.git
-$ cd longhorn-manager
-$ make
-$ kubectl create -f deploy/uninstall/uninstall.yaml
-podsecuritypolicy.policy/longhorn-uninstall-psp created
-serviceaccount/longhorn-uninstall-service-account created
-clusterrole.rbac.authorization.k8s.io/longhorn-uninstall-role created
-clusterrolebinding.rbac.authorization.k8s.io/longhorn-uninstall-bind created
-job.batch/longhorn-uninstall created
-$ kubectl get job/longhorn-uninstall -w
-NAME                 COMPLETIONS   DURATION   AGE
-longhorn-uninstall   0/1           12s        14s
-longhorn-uninstall   1/1           24s        26s
-^C <==しばらく待ってからctrl-cで止める
-$ kubectl delete -Rf deploy/install
-$ kubectl delete -f deploy/uninstall/uninstall.yaml
-```
+上記のuninstall.yamlを使った削除手順をもう一度実行したら回復しました。
 
 ### その他気づいた事
 storageClassにmicrok8s_hostpathを指定した場合、[マルチノード環境](https://microk8s.io/docs/clustering)ではsecurityContext:fsGroupが正しく機能しないようです。その結果、下記のようなエラーが発生して、データベースの作成に失敗します(Error=-13はPermission denieです)。longhornは問題なく動作しました。
