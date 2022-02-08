@@ -1,13 +1,20 @@
 # VMWAREでNAT接続したvmのIPを固定する方法のメモ書き
 なんらかのクラスタを構成する場合(今回はk8sクラスタ)、IPは固定しておかないとトラブルのもと。
 
-1. dhcpの範囲を確認する。
+1. dhcpの範囲,DNS,Default G/Wを確認する。
 ```
 C:\ProgramData\VMware\vmnetdhcp.conf
 # Virtual ethernet segment 8
- range 192.168.211.128 192.168.211.254;  
+ range 192.168.211.128 192.168.211.254; 　<==DHCP 範囲
+ option domain-name-servers 192.168.211.2;　<==DNSサーバ
 ```
-この範囲以外のIPを使用する。192.168.211.10～を使用することにした。
+固定IPには、192.168.211.10～など、この範囲以外のIPを使用する。
+
+C:\ProgramData\VMware\vmnetnat.conf
+```
+# NAT gateway address
+ip = 192.168.211.2/24  <==Default G/W
+```
 
 2. IPを固定化
 ```
@@ -29,7 +36,7 @@ $ sudo netplan apply
 $ ping 192.168.211.2
   [成功するはず]
 ```
-これだけだと名前解決が失敗(そのためapt upgradeが失敗)する。
+これだけだとDNS名前解決が失敗する。
 
 3. DNS設定変更
 
