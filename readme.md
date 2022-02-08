@@ -7,7 +7,7 @@ Japan Virtual Summit 2021で、Kubernetesに関するセッションを実施さ
 |クライアントPC|Windows10 Pro|物理ホスト|172.X.X.30/24, (vmware NAT)192.168.11.1/24|
 |mirok8s環境|ubuntu 20.04.1 LTS|上記Windows10上の仮想ホスト(vmware)|192.168.11.49/24|
 
-ubuntuは、[ubuntu-20.04.1-live-server-amd64.iso](http://old-releases.ubuntu.com/releases/20.04.1/ubuntu-20.04.1-live-server-amd64.iso)を使用して、最低限のサーバ機能のみをインストールしました。
+ubuntuは、[ubuntu-20.04.1-live-server-amd64.iso](http://old-releases.ubuntu.com/releases/20.04.1/ubuntu-20.04.1-live-server-amd64.iso)を使用して、最低限のサーバ機能のみ(SSHDだけ)をインストールしました。microk8sをインストールするオプションも選択可能でしたが、スキップしました。
 
 ## 概要
 IRIS Community EditionをKubernetesのStatefulSetとしてデプロイする手順を記します。
