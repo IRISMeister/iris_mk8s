@@ -22,7 +22,6 @@ $ sudo snap install microk8s --classic --channel=1.20
 $ sudo usermod -a -G microk8s $USER
 [グループ追加反映のためにLogout - Login実行]
 $ microk8s start
-$ microk8s disable ha-cluster
 $ microk8s enable dns registry storage metallb
   ・
   ・
