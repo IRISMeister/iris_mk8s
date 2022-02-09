@@ -58,6 +58,19 @@ ubuntu   Ready    <none>   10d   v1.20.7-34+df7df22a741dbc
 ```
 > 元の状態に戻すには sudo snap unalias kubectl
 
+環境が正しく動作することを確認するためにIRISを起動してみます。下記コマンドの実行で、USERプロンプトが表示されるはずです。
+```
+$ kubectl run iris --image=containers.intersystems.com/intersystems/iris-community:2021.1.0.215.3
+$ watch kubectl get pod
+$ kubectl exec -ti iris -- iris session iris
+USER>
+```
+
+今後の作業に備えて、作成したPODを削除しておきます。
+```
+$ kubectl delete pod iris
+```
+
 ## 起動
 ```
 $ kubectl apply -f mk8s-iris.yml
@@ -365,12 +378,16 @@ $ kubectl apply -f mk8s-iris.yml
 > drwxrwsr-x   4 root      irisuser     4096 Jan  5 17:09 vol-data
 > ```
 
-下記を実行すれば、Windowsのブラウザから、[Longhorn UI](http://192.168.11.49:8000/)を参照できます。
+下記を実行すれば、Windowsのブラウザから、[Longhorn UI](http://192.168.11.49/)を参照できます。
 ```
-$ kubectl -n longhorn-system get pods -o wide | grep ui
-longhorn-ui-9fdb94f9-zbm97                  1/1     Running   0          8m49s   10.1.243.201   ubuntu   <none>           <none>
-$ kubectl -n longhorn-system port-forward longhorn-ui-9fdb94f9-zbm97 --address 0.0.0.0 8000:8000
+$ microk8s enable ingress
+$ kubectl apply -f longhorn-ui-ingress.yml
 ```
+ポート80を他の用途に使ってる場合、下記のようにport-forwardを使う方法もあります。この場合ポートは8080なので、URLは[こちら](http://192.168.11.49:8080/)になります。
+```
+$ kubectl -n longhorn-system port-forward svc/longhorn-frontend 8080:80 --address 0.0.0.0
+```
+> UIで、VolumeのStateが"Degraded"になっていますが、これはReplicaの数がnumberOfReplicasの既定値3を満たしていないためです。
 
 以降の操作は、同様です。不要になれば削除します。  
 ```
