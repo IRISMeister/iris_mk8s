@@ -34,7 +34,18 @@ ubuntu-1   Ready    <none>   10m   v1.20.13-35+d877e7a8ac536e
 ubuntu-2   Ready    <none>   32s   v1.20.13-35+d877e7a8ac536e
 ```
 
-3台目以降同様。
+3台目以降、同様にmicrok8s add-nodeからの手順を実行する。
+
+## 特定ノードをスケジューリング対象からはずす方法
+```bash
+irismeister@ubuntu-1:~$ kubectl cordon ubuntu-2
+irismeister@ubuntu-1:~$ kubectl drain --ignore-daemonsets ubuntu-2
+```
+スケジューリングを再開するには
+```bash
+irismeister@ubuntu-1:~$ kubectl uncordon ubuntu-2
+```
+
 
 ## ノード削除
 削除するノード(ubuntu-3)で実行
