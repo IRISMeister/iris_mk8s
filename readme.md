@@ -1,6 +1,8 @@
 ## 目的
 Japan Virtual Summit 2021で、Kubernetesに関するセッションを実施させていただいたのですが、AzureのアカウントやIRIS評価用ライセンスキーをお持ちの方が対象になっていました。もう少し手軽に試してみたいとお考えの開発者の方もおられると思いますので、本記事では仮想環境でも利用可能なk8sの軽量実装である[mirok8s](https://microk8s.io/)で、IRIS Community Editionを稼働させる手順をご紹介いたします。
 
+マルチノード化する手順は[こちら](https://github.com/IRISMeister/iris_mk8s/blob/main/microk8s%E3%83%9E%E3%83%AB%E3%83%81%E3%83%8E%E3%83%BC%E3%83%89%E5%8C%96.md)に記載しています。
+
 参考までに私の環境は以下の通りです。
 |用途|O/S|ホストタイプ|IP|
 |:--|:--|:--|:--|
