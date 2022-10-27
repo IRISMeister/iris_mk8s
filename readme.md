@@ -62,7 +62,7 @@ ubuntu   Ready    <none>   10d   v1.20.7-34+df7df22a741dbc
 
 環境が正しく動作することを確認するためにIRISを起動してみます。下記コマンドの実行で、USERプロンプトが表示されるはずです。
 ```
-$ kubectl run iris --image=intersystemsdc/iris-community:2021.1.0.215.3-zpm
+$ kubectl run iris --image=intersystemsdc/iris-community:2022.1.0.209.0-zpm
 $ watch kubectl get pod
 $ kubectl exec -ti iris -- iris session iris
 USER>
@@ -400,7 +400,7 @@ $ kubectl apply -f mk8s-iris.yml
 > fsGroup指定ありの場合
 > ```
 > $ kubectl exec -it data-0 -- ls / -l
-> drwxrwsr-x   4 root      irisuser     4096 Jan  5 17:09 vol-data
+> drwxrwsr-x   4 root      irisowner     4096 Jan  5 17:09 vol-data
 > ```
 > 2021.1まではfsGroup:52773を指定すると動きましたが、2022.1以後はfsGroup:51773を指定すると動きました。
 

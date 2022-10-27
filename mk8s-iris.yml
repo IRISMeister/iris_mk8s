@@ -66,10 +66,10 @@ spec:
         app: iris
     spec:
       securityContext: 
-        fsGroup: 52773
+        fsGroup: 51773
       containers:
       - name: iris
-        image: intersystemsdc/iris-community:2021.1.0.215.3-zpm
+        image: intersystemsdc/iris-community:2022.1.0.209.0-zpm
         ports:
         - containerPort: 1972
         - containerPort: 52773
