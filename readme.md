@@ -377,7 +377,7 @@ $ kubectl apply -f mk8s-iris.yml
 > fsGroup指定ありの場合
 > ```
 > $ kubectl exec -it data-0 -- ls / -l
-> drwxrwsr-x   4 root      irisuser     4096 Jan  5 17:09 vol-data
+> drwxrwsr-x   4 root      irisowner     4096 Jan  5 17:09 vol-data
 > ```
 
 下記を実行すれば、Windowsのブラウザから、[Longhorn UI](http://192.168.11.49/)を参照できます。
