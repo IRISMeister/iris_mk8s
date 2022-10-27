@@ -96,6 +96,11 @@ iris         ClusterIP      None             <none>           52773/TCP         
 iris-ext     LoadBalancer   10.152.183.137   192.168.11.110   52773:31707/TCP   8m55s
 ```
 
+この時点で、下記コマンドでirisのREST/APIで提供されているメトリックスを取得できるはずです。
+```
+$ curl http://192.168.11.110:52773/api/monitor/metrics
+```
+
 ポッドのSTATUSがrunningにならない場合、下記コマンドでイベントを確認できます。イメージ名を間違って指定していてPullが失敗したり、なんらかのリソースが不足していることが考えられます。
 ```
 $ kubectl describe pod data-0
