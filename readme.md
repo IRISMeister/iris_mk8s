@@ -133,6 +133,24 @@ dbv-mgr-data-1    Bound    pvc-137b0ccf-406b-40ac-b8c5-6eed8534a6fb   5Gi       
 dbv-data-data-1   Bound    pvc-4f2be4f1-3691-4f7e-ba14-1f0461d59c76   5Gi        RWO            microk8s-hostpath   9m3s
 ```
 
+dfを実行すると、データべースファイルを配置するための/vol-dataがマウント対象に表示されていなくて、一瞬、？となりますが、--all指定すると表示されます。
+```
+irisowner@data-0:~$ df --all
+Filesystem     1K-blocks     Used Available Use% Mounted on
+  ・
+  ・
+/dev/sda2      205310952 26925908 167883056  14% /iris-mgr
+/dev/sda2      205310952 26925908 167883056  14% /vol-data
+/dev/sda2      205310952 26925908 167883056  14% /irissys/cpf
+/dev/sda2      205310952 26925908 167883056  14% /etc/hosts
+/dev/sda2      205310952 26925908 167883056  14% /dev/termination-log
+/dev/sda2      205310952 26925908 167883056  14% /etc/hostname
+/dev/sda2      205310952 26925908 167883056  14% /etc/resolv.conf
+  ・
+  ・
+```
+/dev/sda2はコンテナ内のデバイスではなく、ホスト上のデバイスなので、microk8s-hostpathの仕組み上、そのような表示になるのでしょう。
+
 ## 個別のポッド上のIRISの管理ポータルにアクセスする
 
 下記コマンドで各ポッドの内部IPアドレスを確認します。
@@ -384,6 +402,7 @@ $ kubectl apply -f mk8s-iris.yml
 > $ kubectl exec -it data-0 -- ls / -l
 > drwxrwsr-x   4 root      irisuser     4096 Jan  5 17:09 vol-data
 > ```
+> 2021.1まではfsGroup:52773を指定すると動きましたが、2022.1以後はfsGroup:51773を指定すると動きました。
 
 下記を実行すれば、Windowsのブラウザから、[Longhorn UI](http://192.168.11.49/)を参照できます。
 ```
