@@ -69,7 +69,7 @@ spec:
         fsGroup: 51773
       containers:
       - name: iris
-        image: containers.intersystems.com/intersystems/iris-community:2021.1.0.215.3
+        image: intersystemsdc/iris-community:2021.1.0.215.3-zpm
         ports:
         - containerPort: 1972
         - containerPort: 52773

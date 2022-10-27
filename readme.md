@@ -62,7 +62,7 @@ ubuntu   Ready    <none>   10d   v1.20.7-34+df7df22a741dbc
 
 環境が正しく動作することを確認するためにIRISを起動してみます。下記コマンドの実行で、USERプロンプトが表示されるはずです。
 ```
-$ kubectl run iris --image=containers.intersystems.com/intersystems/iris-community:2021.1.0.215.3
+$ kubectl run iris --image=intersystemsdc/iris-community:2021.1.0.215.3-zpm
 $ watch kubectl get pod
 $ kubectl exec -ti iris -- iris session iris
 USER>
@@ -105,8 +105,8 @@ Events:
   ----     ------            ----               ----               -------
   Warning  FailedScheduling  4m (x3 over 4m3s)  default-scheduler  0/1 nodes are available: 1 pod has unbound immediate PersistentVolumeClaims.
   Normal   Scheduled         3m56s              default-scheduler  Successfully assigned default/data-0 to ubuntu
-  Normal   Pulling           3m56s              kubelet            Pulling image "containers.intersystems.com/intersystems/iris-community:2021.1.0.215.3"
-  Normal   Pulled            69s                kubelet            Successfully pulled image "containers.intersystems.com/intersystems/iris-community:2021.1.0.215.3" in 2m46.607639152s
+  Normal   Pulling           3m56s              kubelet            Pulling image "intersystemsdc/iris-community:2021.1.0.215.3-zpm"
+  Normal   Pulled            69s                kubelet            Successfully pulled image "intersystemsdc/iris-community:2021.1.0.215.3-zpm" in 2m46.607639152s
   Normal   Created           69s                kubelet            Created container iris
   Normal   Started           68s                kubelet            Started container iris
   ```
